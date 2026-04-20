@@ -1,0 +1,322 @@
+{
+  "name": "Post Call analysis",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Post Call Analysis",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Clients Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Job Title",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Company Name",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Call recording",
+              "fieldType": "file",
+              "multipleFiles": false,
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.3,
+      "position": [
+        288,
+        64
+      ],
+      "id": "221d6df0-9e60-4f36-b121-8b64cb17d5a8",
+      "name": "On form submission",
+      "webhookId": "<REDACTED_WEBHOOK_ID>"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a veteran wealth advisory cold-calling coach with 15+ years of experience training advisors to convert HNI prospects through insight-led, trust-based conversations.\n\nCompany Context:\n ShiftAltCap helps HNIs invest confidently in global markets through robust, risk-adjusted portfolios built around innovation-led growth (e.g., NVIDIA), resilient businesses (e.g., Berkshire Hathaway), and strategic hedges (e.g., Bitcoin, Gold). Communication tone: intelligent, calm, credible, and educational — never pushy.\n\nTask:\nAnalyze the following cold call transcript and provide a precise, actionable critique.\nFocus on:\nRapport and trust-building\nClarity and confidence in articulating ShiftAltCap’s value\nBalance between educating vs. pitching\nHandling skepticism or objections\nTone, pacing, and authority\n\nOutput Format:\nOverall Summary (2–3 lines)\nStrengths (Bullets)\nAreas to Improve (Bullets)\nCold Call Transcript: {{ $json.text }}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        736,
+        64
+      ],
+      "id": "3afd8d83-0ebd-402f-9b05-cfccb318b5f9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4.1-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        688,
+        272
+      ],
+      "id": "3f0d5f1a-65ef-4f59-99f1-faf1b4fb74b8",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "<REDACTED_CREDENTIAL_ID>", "name": "<REDACTED_CREDENTIAL_NAME>"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"overall_summary\": \"Advisor established credibility early and engaged prospect on portfolio diversification. Showed good product knowledge but missed opportunity to probe deeper on investment goals. Call ended with soft next step rather than confirmed meeting.\",\n  \"strengths\": [\n    \"Strong opening that referenced recent market volatility to create relevance\",\n    \"Demonstrated expertise in global markets and risk-adjusted strategies\",\n    \"Maintained calm, educational tone without being pushy\"\n  ],\n  \"areas_to_improve\": [\n    \"Did not uncover prospect's current portfolio allocation or pain points\",\n    \"Failed to address skepticism about international investing with concrete examples\",\n    \"Weak close—no specific date/time locked for follow-up call\"\n  ]\n  \n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        928,
+        272
+      ],
+      "id": "c2b32847-8f07-4d81-a0fb-6085df5362c2",
+      "name": "Structured Output Parser"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.elevenlabs.io/v1/speech-to-text",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xi-api-key",
+              "value": "<ELEVENLABS_API_KEY>"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model_id",
+              "value": "scribe_v1"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "Call_recording"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        64
+      ],
+      "id": "1fe9257f-819f-4200-ba64-beb31f68d6e2",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1n7wiLLDk9Gu8Qge6T4r0UI6DySIx08B08_ygQvrD1_E",
+          "mode": "list",
+          "cachedResultName": "call analysis",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<REDACTED_SHEET_ID>/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/<REDACTED_SHEET_ID>/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Client Name": "={{ $('On form submission').item.json['Clients Name'] }}",
+            "Job Title": "={{ $('On form submission').item.json['Job Title'] }}",
+            "Company Name ": "={{ $('On form submission').item.json['Company Name'] }}",
+            "Call Recording": "={{ $('On form submission').item.json['Call recording'] }}",
+            "Overall Summary": "={{ $json.output.overall_summary }}",
+            "Strengths": "={{ $json.output.strengths }}",
+            "area to improve": "={{ $json.output.areas_to_improve }}"
+          },
+          "matchingColumns": [
+            "Client Name"
+          ],
+          "schema": [
+            {
+              "id": "Client Name",
+              "displayName": "Client Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Job Title",
+              "displayName": "Job Title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Company Name ",
+              "displayName": "Company Name ",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Call Recording",
+              "displayName": "Call Recording",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Overall Summary",
+              "displayName": "Overall Summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Strengths",
+              "displayName": "Strengths",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "area to improve",
+              "displayName": "area to improve",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1088,
+        64
+      ],
+      "id": "ef67d5cd-ee08-4ed4-bf1c-5309f75f57e1",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "<REDACTED_CREDENTIAL_ID>", "name": "<REDACTED_CREDENTIAL_NAME>"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "pinData": {},
+  "triggerCount": 1,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}
